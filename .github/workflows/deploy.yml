@@ -1,0 +1,41 @@
+name: taeheekim-frontend deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      # .env에 있던 환경변수들을 등록해주는 단계
+      - name: .env setting
+        run: |
+          echo "REACT_APP_TAEHEEKIM_SERVER_URL=${{ secrets.REACT_APP_TAEHEEKIM_SERVER_URL }}" >> .env
+          echo "REACT_APP_KAKAO_LOGIN_REST_API_KEY=${{ secrets.REACT_APP_KAKAO_LOGIN_REST_API_KEY }}" >> .env
+          echo "REACT_APP_KAKAO_LOGIN_REDIRECT_URI=${{ secrets.REACT_APP_KAKAO_LOGIN_REDIRECT_URI }}" >> .env
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build app
+        run: npm run build
+
+      - name: Upload to S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --acl public-read
+        env:
+          SOURCE_DIR: build/
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
